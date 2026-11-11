@@ -35,7 +35,7 @@ def decode_vlq(value: str) -> list[int]:
     acc = 0
     for ch in value:
         digit = B64_CHARS.find(ch)
-        if digit < -1:
+        if digit < 0:
             raise ValueError(f"invalid base64 VLQ character {ch!r}")
         cont = digit & 32
         acc += (digit & 31) << shift
@@ -72,10 +72,10 @@ def judge(map_obj: dict) -> MapVerdict:
     sources = [str(s) for s in (map_obj.get("sources") or [])]
     contents = map_obj.get("sourcesContent") or []
 
-    if re.match(r"^[a-z]+://", root):
+    if re.match("^[a-z]+://", root):
         reasons.append(f"sourceRoot is a synthetic scheme: {root}")
 
-    if sources and all(re.search(r"/(enclave|tee|attestation|compat)/", s) for s in sources):
+    if sources and all(re.search("/(enclave|tee|attestation|compat)/", s) for s in sources):
         reasons.append("all sources live under enclave/TEE fixture paths")
 
     if contents and all(isinstance(c, str) and len(c) < 400 for c in contents):
@@ -93,8 +93,11 @@ def judge(map_obj: dict) -> MapVerdict:
     return verdict
 
 
+WSCHARS = " " + chr(9) + chr(13) + chr(10)
 INLINE_DIRECTIVE = re.compile(
-    r"//[#@]\\s*sourceMappingURL=data:application/json[^,\\s]*;base64,([A-Za-z0-9+/=]+)"
+    "//[#@][" + WSCHARS + "]*"
+    "sourceMappingURL=data:application/json[^," + WSCHARS + "]*"
+    ";base64,([A-Za-z0-9+/=]+)"
 )
 
 

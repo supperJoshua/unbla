@@ -103,7 +103,6 @@ def build_asar(
     payload, so both the header and the blob shrink. Offsets are recomputed in
     header order, which is what ``@electron/asar`` does on pack.
     """
-    out_files: dict = {}
     payload = bytearray()
 
     def rebuild(node: dict, prefix: str) -> dict:
@@ -131,7 +130,7 @@ def build_asar(
     out_files = rebuild(header, "")
     json_bytes = json.dumps(out_files, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
     padding = (-len(json_bytes)) % PAD
-    padded = json_bytes + (b"\x00" * padding)
+    padded = json_bytes + bytes(padding)
 
     word1 = 8 + len(padded)
     word2 = 4 + len(padded)
