@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=65"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "unbla"
+version = "0.1.0"
+description = "Detect and strip the adversarial decoy layers that BLA-style AI shields inject into release artifacts"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [{name = "unbla contributors"}]
+keywords = ["asar", "electron", "reverse-engineering", "sourcemap", "deobfuscation", "forensics"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Security",
+]
+dependencies = []
+
+[project.urls]
+Source = "https://github.com/supperJoshua/unbla"
+Issues = "https://github.com/supperJoshua/unbla/issues"
+
+[project.scripts]
+unbla = "unbla.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
