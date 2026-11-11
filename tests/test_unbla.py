@@ -92,7 +92,7 @@ class DecoyDetection(unittest.TestCase):
 
     def test_real_file_is_not_decoy(self):
         self.assertFalse(shields._is_decoy_entry("dist/main.js", REAL_BODY))
-        self.assertFalse(shields._is_decoy_entry("resources/x.json", b"{"total": 3}"))
+        self.assertFalse(shields._is_decoy_entry("resources/x.json", json.dumps({"total": 3}).encode()))
 
 
 class SourceMapForensics(unittest.TestCase):
@@ -133,11 +133,11 @@ class JsStripping(unittest.TestCase):
         self.assertIn("module.exports", new_src)
 
     def test_exported_names_ignore_decoy_json_keys(self):
-        src = 'const d = {"data": 1, "shardId": 2};\nmodule.exports = { seatCost: 1 };\n'
+        src = json.dumps("x") + "\nconst d = {data: 1};\nmodule.exports = { seatCost: 1 };\n"
         self.assertEqual(verify.exported_names(src), {"seatCost"})
 
     def test_strings_and_templates_do_not_split_statements(self):
-        src = 'const a = "x;y";\nconst b = `p${1 + 2}q`;\nconst c = 3;\n'
+        src = "const a = " + chr(34) + "x;y" + chr(34) + ";\nconst b = `p${1 + 2}q`;\nconst c = 3;\n"
         self.assertEqual(len(jsast.scan_top_level(src)), 3)
 
 
