@@ -23,21 +23,21 @@
 
 ## 2. 实测（真实 BLA 产物，非模拟）
 
-靶子：一个 7 文件的 Electron 应用，`resources/app.asar` 原始 **4 736 B**。
+靶子：一个 7 文件的 Electron 应用，`resources/app.asar` 原始 **3 705 B**。
 用 `bla-agents@3.2.4` 以 `--intensity bankrupt` 加固后，再跑 `unbla`：
 
 | 指标 | 加固后 | unbla 处理后 | 变化 |
 |---|---|---|---|
-| `app.asar` | 18 446 243 B（17.59 MiB） | **692 425 B（0.66 MiB）** | **−96.2%** |
-| asar 头部 | 16.64 MiB | **0.00 MiB** | 降到 0 |
-| 整棵产物树 | 19 138 862 B | **1 357 441 B** | **−92.9%** |
-| asar 条目 | 4 007（含 4 000 诱饵） | **9** | 删 4 000 诱饵 |
-| `dist/billing.js` | 137 817 B | 132 281 B | −4.1% |
+| `app.asar` | 18 436 082 B（17.58 MiB） | **682 280 B（0.65 MiB）** | **−96.3%** |
+| asar 头部 | 16.64 MiB（17 445 012 B） | **0.00 MiB（2 100 B）** | 降到 0 |
+| 整棵产物树 | 19 119 081 B | **1 337 800 B** | **−93.0%** |
+| asar 条目 | 4 008（含 4 000 诱饵） | **8** | 删 4 000 诱饵 |
+| `billing.js` | 136 572 B | 131 036 B | −4.1% |
 
-**行为保持性（`unbla verify`）**：7 个真实条目全部存在，SHA-256 逐字节一致，`node --check` 通过 → `PASS`。
-**第三方交叉验证**：用官方 `@electron/asar@4.3.1` 的 `listPackage()` 能正常加载剥离后的包，`extractFile('billing.js')` 读出 138 184 B。
+**行为保持性（`unbla verify`）**：8 个真实条目全部存在，SHA-256 逐字节一致，`node --check` 通过 → `PASS`。
+**第三方交叉验证**：官方 `@electron/asar@4.3.1` 的 `listPackage()` 正常加载剥离后的包（10 条目），`extractFile('billing.js')` 读出 136 104 B。
 
-> 数字可复现，步骤见 [docs/EVIDENCE.md](docs/EVIDENCE.md)。
+> 数字可复现，步骤见 [docs/EVIDENCE.md](docs/EVIDENCE.md)；另一组同结构样本的数字与差异原因见该文件第 6 节。
 
 ## 3. 能力矩阵：什么删、什么不删
 
@@ -106,7 +106,23 @@ tests/test_unbla.py   # 13 项，全部内联构造
 docs/EVIDENCE.md      # 每个数字的出处与复现步骤
 ```
 
-## 8. 合法使用
+## 8. 验证
+
+发布前从零重跑一遍（BLA 3.2.4 / `@electron/asar` 4.3.1 / Node 22.23.2 / Python 3.12.11）：
+
+| 测试 | 结果 |
+|---|---|
+| 单元测试 | 13/13 通过 |
+| 真实加固产物的 `scan` | 6 critical / 11 warning，exit 1 |
+| `strip` | 删 4 000 条目 / 0 语句 / 5 个内联假 map |
+| `verify` | PASS，8 个真实条目逐字节一致，`node --check` 全过 |
+| 官方库加载剥离产物 | 10 条目，`extractFile('billing.js')` = 136 104 B |
+| **行为等价** | 原始 / 加固 / 剥离 / 解包后 4 个构建、8 条断言结果全等 |
+| **反向验证** | 删掉一个真实条目 → FAIL；翻转 1 个字节 → FAIL |
+| 未加固产物 | 0 findings（无假阳性） |
+| 幂等性 | 再 strip 一次，SHA-256 不变 |
+
+## 9. 合法使用
 
 仅用于**你自己拥有或已获授权**的产物，用于安全审计、取证分析、恶意投毒检测、教学研究。详见 [DISCLAIMER.md](DISCLAIMER.md)。
 

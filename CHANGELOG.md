@@ -25,5 +25,3 @@
 - AST 级函数重命名**不可逆**，不提供源码还原。
 - 已被织入真实调用链的诱饵（woven）只报告，不删除。
 - 常量对应 BLA 3.2.4；上游改变注入结构后需同步更新判据。
-
-[0.1.0]: https://github.com/supperJoshua/unbla/releases/tag/v0.1.0
