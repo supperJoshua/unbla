@@ -2,6 +2,8 @@
 
 本文记录 README 里每个数字的来源，以及每条判据对应的 BLA 源码位置。目标：任何人可按此复现，也可据此反驳。
 
+> 下文 `$WORK` 代表你自己的临时工作目录，避免把任何具体环境路径写进仓库。
+
 ## 0. 环境
 
 | 项 | 值 |
@@ -49,8 +51,9 @@ JSON 从 offset 16 开始，null 补齐
 
 ```bash
 # 1) 取 BLA 并装到独立目录
-git clone --depth 1 https://github.com/qybaihe/bla.git /tmp/bla_probe
-mkdir -p /tmp/blarun && cd /tmp/blarun
+export WORK=$(mktemp -d)
+git clone --depth 1 https://github.com/qybaihe/bla.git $WORK/bla_probe
+mkdir -p "$WORK/blarun" && cd "$WORK/blarun"
 npm i bla-agents@latest @electron/asar
 
 # 2) 造一个最小 Electron 靶子（7 个文件，含真实业务逻辑与手写 sourcemap）
@@ -66,9 +69,9 @@ node .../bla-agents/dist/cli.js harden . --intensity bankrupt
 #    -> runId: bla-run-a0824c9fc12ff3d0beae7582
 
 # 4) 剥离 + 校验
-PYTHONPATH=src python3 -m unbla.cli scan   /tmp/hardened/app/.bla-hardened
-PYTHONPATH=src python3 -m unbla.cli strip  /tmp/hardened/app/.bla-hardened -o /tmp/stripped
-PYTHONPATH=src python3 -m unbla.cli verify /tmp/hardened/app/.bla-hardened /tmp/stripped
+PYTHONPATH=src python3 -m unbla.cli scan   $WORK/hardened/app/.bla-hardened
+PYTHONPATH=src python3 -m unbla.cli strip  $WORK/hardened/app/.bla-hardened -o $WORK/stripped
+PYTHONPATH=src python3 -m unbla.cli verify $WORK/hardened/app/.bla-hardened $WORK/stripped
 ```
 
 实测输出：
@@ -95,11 +98,11 @@ RESULT: PASS — stripping is behaviour-preserving
 对加固后的 `dist/billing.js` 做引用计数，得到这样的调用关系：
 
 ```
-_interlockSafetyCorpus_0c43          ← 诱饵语料（对象字面量）
+_interlockSafetyCorpus_0c43          <- 诱饵语料（对象字面量）
   ↑ 被引用 4 次，全部来自：
-_deriveContainmentCorpusDigest_0c43  ← 诱饵摘要函数
+_deriveContainmentCorpusDigest_0c43  <- 诱饵摘要函数
   ↑ 被引用 2 次，其中来自：
-runtimeSeedPrimaryPolicy_5a85        ← 重命名后的【真实】业务函数（原 seatCost）
+runtimeSeedPrimaryPolicy_5a85        <- 重命名后的【真实】业务函数（原 seatCost）
 ```
 
 也就是说：诱饵语料与摘要函数被**接进了真实函数的调用体**。若按「未被引用即删除」处理，这个簇会被判成死代码，删掉后真实函数引用到不存在的符号 → 运行时报错。
@@ -123,8 +126,8 @@ runtimeSeedPrimaryPolicy_5a85        ← 重命名后的【真实】业务函数
 
 ```bash
 node --input-type=module -e "
-import * as a from '/tmp/blarun/node_modules/@electron/asar/lib/asar.js';
-const p = '/tmp/stripped/resources/app.asar';
+import * as a from '$WORK/blarun/node_modules/@electron/asar/lib/asar.js';
+const p = '$WORK/stripped/resources/app.asar';
 console.log(a.listPackage(p));
 "
 ```

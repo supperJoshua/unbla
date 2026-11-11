@@ -1,5 +1,9 @@
 # unbla
 
+[![ci](https://github.com/supperJoshua/unbla/actions/workflows/ci.yml/badge.svg)](https://github.com/supperJoshua/unbla/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)](pyproject.toml)
+
 **剥掉 BLA 类「反 AI 逆向」防护层，还你一个能读、能跑、体积正常的产物。**
 
 `unbla` 不是一个「一键还原源码」的工具。它只做一件事：把投毒层里**可以证明删了不改变行为**的那部分拆掉，剩下的明确告诉你在哪、为什么不能动。
@@ -7,7 +11,7 @@
 ---
 ## 1. 它面对的是什么
 
-2025 年中山大学本科生 Timo Zhang 开源了 [BLA](https://github.com/qybaihe/bla)（npm 包 `bla-agents`，本文实测版本 **3.2.4**）：在打包产物里注入让 AI 逆向 agent 空转的「诱饵」，把逆向成本推到不可接受。三招：
+上游项目 [BLA](https://github.com/qybaihe/bla)（npm 包 `bla-agents`，本文实测版本 **3.2.4**）在打包产物里注入让 AI 逆向 agent 空转的「诱饵」，把逆向成本推到不可接受。三招：
 
 | 招式 | 做法 | 后果 |
 |---|---|---|
@@ -53,9 +57,9 @@
 这是本项目最重要的一条实测结论。BLA 把诱饵语料和摘要函数**互相引用，并接进真实函数**：
 
 ```
-runtimeSeedPrimaryPolicy_5a85        ← 重命名后的真实业务函数（原 seatCost）
-  └─ _deriveContainmentCorpusDigest_0c43   ← 诱饵摘要
-       └─ _interlockSafetyCorpus_0c43      ← 诱饵语料
+runtimeSeedPrimaryPolicy_5a85        <- 重命名后的真实业务函数（原 seatCost）
+  └─ _deriveContainmentCorpusDigest_0c43   <- 诱饵摘要
+       └─ _interlockSafetyCorpus_0c43      <- 诱饵语料
 ```
 
 两端都是诱饵命名，中间夹着真实逻辑。任何「未被引用即删除」的朴素死代码策略都会把这个簇判成死的，一删就破坏运行。`unbla` 因此改成**从非诱饵语句出发做可达性闭包**：只要这个簇能从活代码走到，就整体判定 `removable=False`，只报告不动刀。
@@ -88,9 +92,25 @@ MCP / CI 场景：`scan --json -o report.json` 输出机器可读报告。
 - **只看结构**：不做语义级反编译，不判断「这段业务逻辑对不对」。
 - **攻防是动态的**：BLA 换诱发方式，判据就要跟着改。当前常量对应 3.2.4。
 
-## 7. 合法使用
+## 7. 项目结构
+
+```
+src/unbla/
+  asar.py       # 双 Pickle 头的 asar 读写，零依赖
+  jsast.py      # 顶层语句 span 扫描（跳过字符串/模板/注释）
+  sourcemap.py  # VLQ 解码 + 伪造判据 + 内联 map 提取
+  shields.py    # 5 个检测器 + 2 个安全剥离器
+  verify.py     # 导出名 / node --check / 逐条目哈希
+  cli.py        # scan | strip | verify
+tests/test_unbla.py   # 13 项，全部内联构造
+docs/EVIDENCE.md      # 每个数字的出处与复现步骤
+```
+
+## 8. 合法使用
 
 仅用于**你自己拥有或已获授权**的产物，用于安全审计、取证分析、恶意投毒检测、教学研究。详见 [DISCLAIMER.md](DISCLAIMER.md)。
+
+贡献代码请先读 [CONTRIBUTING.md](CONTRIBUTING.md)；版本变更见 [CHANGELOG.md](CHANGELOG.md)；安全问题按 [SECURITY.md](SECURITY.md) 私下报告，不要开公开 issue。
 
 ## License
 
